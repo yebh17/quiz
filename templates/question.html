@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz Game</title>
+    <script>
+        // Flag to track if warning has been shown
+        var warningShown = false;
+
+        // Flag to track if form has been submitted
+        var formSubmitted = false;
+
+        // Disable page refresh
+        window.onbeforeunload = function(event) {
+            if (!warningShown && !formSubmitted) {
+                showWarning();
+                event.preventDefault();
+                return "Not Allowed, please stay on the page";
+            }
+        };
+
+        // Disable back button
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.pushState(null, null, location.href);
+        };
+
+        // Function to show warning message
+        function showWarning() {
+            var warningMessage = document.getElementById('warning-message');
+            warningMessage.style.display = 'block';
+            warningShown = true;
+            setTimeout(function() {
+                warningMessage.style.display = 'none';
+            }, 5000); // 5 seconds
+        }
+
+        // Function to set formSubmitted flag when form is submitted
+        function submitForm() {
+            formSubmitted = true;
+        }
+    </script>
+    <style>
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>Question:</h2>
+    <p>{{ question }}</p>
+    <form method="POST" onsubmit="submitForm()">
+        {% for option in options %}
+            <input type="radio" name="answer" value="{{ option }}"> {{ option }}<br>
+        {% endfor %}
+        <input type="submit" value="Submit">
+    </form>
+    <p id="warning-message" class="warning" style="display: none;">Not Allowed, please stay on the page</p>
+</body>
+</html>
