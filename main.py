@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from flask import Flask, render_template, request, redirect, url_for
-from threading import Timer
+from flask import Flask, render_template, request, redirect, url_for, current_app
+import threading
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 # Global variables
 questions = [
@@ -59,12 +59,37 @@ def round():
 
     return render_template('round.html')
 
+def start_timer():
+    global timer
+    timer = threading.Timer(20.0, timeout)
+    timer.start()
+
 @app.route('/question', methods=['GET', 'POST'])
 def question():
-    global current_question
+    global current_question, timer
 
     if current_question >= len(questions):
+        if timer:
+            timer.cancel()
         return render_template('thankyou.html', total_questions=len(questions), num_correct=calculate_num_correct(), num_incorrect=calculate_num_incorrect(), answers=answers)
+
+    if timer and not timer.is_alive():
+        answer_details = {
+            'question': questions[current_question]['question'],
+            'selected_option': None,
+            'correct_option': questions[current_question]['answer'],
+            'result': "TIMEOUT",
+            'timeout': True
+        }
+        answers.append(answer_details)  # Store the answer details
+        current_question += 1
+
+        if current_question >= len(questions):
+            if timer:
+                timer.cancel()
+            return render_template('thankyou.html', total_questions=len(questions), num_correct=calculate_num_correct(), num_incorrect=calculate_num_incorrect(), answers=answers)
+
+        return render_template('question.html', question=questions[current_question]['question'], options=questions[current_question]['options'])
 
     if request.method == 'POST':
         if 'answer' in request.form:
@@ -87,6 +112,8 @@ def question():
             current_question += 1
 
             if current_question >= len(questions):
+                if timer:
+                    timer.cancel()
                 return render_template('thankyou.html', total_questions=len(questions), num_correct=calculate_num_correct(), num_incorrect=calculate_num_incorrect(), answers=answers)
 
             return render_template('question.html', question=questions[current_question]['question'], options=questions[current_question]['options'])
@@ -94,27 +121,50 @@ def question():
     question_data = questions[current_question]
     options = question_data['options']
 
+    if timer and timer.is_alive():
+        timer.cancel()
+
+    start_timer()
+
     return render_template('question.html', question=question_data['question'], options=options)
+
+def timeout():
+    with app.app_context():
+        global current_question, timer
+        current_question += 1
+
+        if current_question <= len(questions):
+            question_text = questions[current_question - 1]['question']
+            answer_details = {
+                'question': question_text,
+                'selected_option': 'None',
+                'correct_option': questions[current_question - 1]['answer'],
+                'result': 'TIMEOUT',
+                'timeout': True
+            }
+            answers.append(answer_details)
+
+        if current_question < len(questions):
+            if timer and timer.is_alive():
+                timer.cancel()
+            start_timer()
+        elif current_question == len(questions):
+            if timer and timer.is_alive():
+                timer.cancel()
 
 def calculate_num_correct():
     num_correct = 0
     for answer in answers:
-        if answer == "CORRECT ANSWER":
+        if answer['result'] == "CORRECT ANSWER":
             num_correct += 1
     return num_correct
 
 def calculate_num_incorrect():
     num_incorrect = 0
     for answer in answers:
-        if answer == "INCORRECT ANSWER":
+        if answer['result'] == "INCORRECT ANSWER":
             num_incorrect += 1
     return num_incorrect
-
-def timeout():
-    with app.app_context():
-        global current_question, timer
-        current_question += 1
-        return redirect(url_for('question'))
 
 @app.route('/reset')
 def reset():

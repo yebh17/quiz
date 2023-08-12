@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Quiz Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <h2>Thank You for Participation</h2>
@@ -13,6 +14,11 @@
         <p>Question: {{ answer['question'] }}</p>
         <p>Selected Option: {{ answer['selected_option'] }}</p>
         <p>Correct Option: {{ answer['correct_option'] }}</p>
+        {% if answer.get('timeout') %}
+            <p>Timeout: Yes</p>
+        {% else %}
+            <p>Timeout: No</p>
+        {% endif %}
     {% endfor %}
     
     <p>Total Questions: {{ total_questions }}</p>
