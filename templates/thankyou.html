@@ -6,5 +6,17 @@
 <body>
     <h2>Thank You for Participation</h2>
     <p>Thank you for playing the quiz game!</p>
+    
+    <h3>Answer Details:</h3>
+    {% for answer in answers %}
+        <p>{{ answer['result'] }}</p>
+        <p>Question: {{ answer['question'] }}</p>
+        <p>Selected Option: {{ answer['selected_option'] }}</p>
+        <p>Correct Option: {{ answer['correct_option'] }}</p>
+    {% endfor %}
+    
+    <p>Total Questions: {{ total_questions }}</p>
+    <p>Number Correct: {{ num_correct }}</p>
+    <p>Number Incorrect: {{ num_incorrect }}</p>
 </body>
 </html>

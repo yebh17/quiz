@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from flask import Flask, render_template, request, redirect, url_for
 from threading import Timer
 
@@ -19,6 +21,7 @@ questions = [
 ]
 
 current_question = 0
+answers = []
 timer = None
 
 @app.route('/')
@@ -58,39 +61,60 @@ def round():
 
 @app.route('/question', methods=['GET', 'POST'])
 def question():
-    global current_question, timer
+    global current_question
 
     if current_question >= len(questions):
-        return render_template('thankyou.html')
+        return render_template('thankyou.html', total_questions=len(questions), num_correct=calculate_num_correct(), num_incorrect=calculate_num_incorrect(), answers=answers)
 
     if request.method == 'POST':
         if 'answer' in request.form:
             answer = request.form['answer']
             correct_answer = questions[current_question]['answer']
+            question_text = questions[current_question]['question']
+            answer_details = {
+                'question': question_text,
+                'selected_option': answer,
+                'correct_option': correct_answer
+            }
+
             if answer == correct_answer:
-                message = "CORRECT ANSWER"
+                answer_details['result'] = "CORRECT ANSWER"
             else:
-                message = "INCORRECT ANSWER"
+                answer_details['result'] = "INCORRECT ANSWER"
+
+            answers.append(answer_details)  # Store the answer details
 
             current_question += 1
 
             if current_question >= len(questions):
-                return render_template('thankyou.html')
+                return render_template('thankyou.html', total_questions=len(questions), num_correct=calculate_num_correct(), num_incorrect=calculate_num_incorrect(), answers=answers)
 
-            return render_template('question.html', question=questions[current_question]['question'], options=questions[current_question]['options'], message=message)
+            return render_template('question.html', question=questions[current_question]['question'], options=questions[current_question]['options'])
 
     question_data = questions[current_question]
     options = question_data['options']
 
-    timer = Timer(20.0, timeout)
-    timer.start()
-
     return render_template('question.html', question=question_data['question'], options=options)
 
+def calculate_num_correct():
+    num_correct = 0
+    for answer in answers:
+        if answer == "CORRECT ANSWER":
+            num_correct += 1
+    return num_correct
+
+def calculate_num_incorrect():
+    num_incorrect = 0
+    for answer in answers:
+        if answer == "INCORRECT ANSWER":
+            num_incorrect += 1
+    return num_incorrect
+
 def timeout():
-    global current_question, timer
-    current_question += 1
-    return redirect('/question')
+    with app.app_context():
+        global current_question, timer
+        current_question += 1
+        return redirect(url_for('question'))
 
 @app.route('/reset')
 def reset():
@@ -101,4 +125,4 @@ def reset():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='192.168.1.90', port=8080, debug=True)
